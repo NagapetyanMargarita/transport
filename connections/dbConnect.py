@@ -22,35 +22,12 @@ def connect():
     # Проверяем подключение
     try:
         driver.wait(fail_fast=True, timeout=5)
-        print("✅ Успешное подключение к YDB")
+        print("Успешное подключение к YDB")
     except Exception as e:
-        print("❌ Ошибка подключения к YDB:", str(e))
+        print("Ошибка подключения к YDB:", str(e))
         sys.exit(1)
     pool = ydb.SessionPool(driver)
     # Пул сессий
     return pool
 
-    # Запрос
-#     def select_all_users(session):
-#         return session.transaction().execute(
-#             "SELECT * FROM users;",
-#             commit_tx=True
-#         )
-#
-#     try:
-#         result_sets = pool.retry_operation_sync(select_all_users)
-#
-#         rows = result_sets[0].rows
-#         if not rows:
-#             print("⚠️ Таблица users пуста или не найдена")
-#         else:
-#             for row in rows:
-#                 print(dict(row))  # превращаем строку в словарь
-#     except Exception as e:
-#         print("❌ Ошибка при выполнении запроса:", str(e))
-#     finally:
-#         driver.stop()
-#
-#
-# if __name__ == "__main__":
-#     connect()
+

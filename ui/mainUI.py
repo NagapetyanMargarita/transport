@@ -123,30 +123,26 @@ class DatabaseApp:
 
     def load_data(self):
         """Загрузка данных по выбранным фильтрам"""
+
+
         try:
             # Очистка Treeview
             for item in self.tree.get_children():
                 self.tree.delete(item)
 
             # Получение значений фильтров
-            selected_date = self.date_entry.get_date().strftime('%Y-%m-%d')
+
             selected_rc = self.rc_var.get()
 
             # Построение запроса
-            query = """
-                SELECT md.id, rl.name, md.date, md.product_name, md.quantity, md.price
-                FROM main_data md
-                JOIN rc_list rl ON md.rc_id = rl.id
-                WHERE md.date = ? AND rl.name = ?
-                ORDER BY md.id
-            """
-
-            self.cursor.execute(query, (selected_date, selected_rc))
-            rows = self.cursor.fetchall()
+            rows = rcScripts.returnMldata(selected_rc)
 
             # Заполнение Treeview
             for row in rows:
-                self.tree.insert('', tk.END, values=row)
+                values = [value for value in row.values()]
+                values[-3:] = [' '.join(values[-3:])]
+                values[2] =  datetime.fromtimestamp(values[2] / 1000000.0)
+                self.tree.insert('', tk.END, values=values)
 
             self.status_var.set(f"Загружено {len(rows)} записей")
 
