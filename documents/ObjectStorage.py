@@ -2,6 +2,7 @@ import boto3
 import os
 from datetime import datetime
 from botocore.exceptions import ClientError, NoCredentialsError
+import requests
 
 
 class YandexStaticKeyStorage:
@@ -122,3 +123,24 @@ class YandexStaticKeyStorage:
         except ClientError as e:
             print(f"Ошибка получения списка файлов: {e}")
             return []
+
+    @staticmethod
+    def download_public_file(file_id, save_path="download_route_sheet"):
+        try:
+            file_url=f"https://storage.yandexcloud.net/trucking-documents/documents/{file_id}_route_sheet.docx"
+            response = requests.get(file_url, stream=True)
+            response.raise_for_status()
+
+            save_path = f"{save_path}/{file_id}_route_sheet.docx"
+
+            with open(save_path, 'wb') as f:
+                for chunk in response.iter_content(chunk_size=8192):
+                    if chunk:
+                        f.write(chunk)
+
+            print(f"Файл успешно скачан: {save_path}")
+            return save_path
+
+        except requests.exceptions.RequestException as e:
+            print(f"Ошибка скачивания файла: {e}")
+            return None
