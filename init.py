@@ -19,6 +19,7 @@ def object_storage(file_path):
         storage.upload_docx_file(file_path)
 
 if __name__ == "__main__":
+
     nomer1 = "123"
     nomer2 = "456"
     gos_ts = "А123ВС77"
@@ -36,3 +37,8 @@ if __name__ == "__main__":
         print(f"Файл удален: {file_path}")
     else:
         print(f"Файл не найден: {file_path}")
+
+    #Скачивание файла
+    os.makedirs("download_route_sheet", exist_ok=True)
+    file_id="20250929_191753"
+    YandexStaticKeyStorage.download_public_file(file_id)
