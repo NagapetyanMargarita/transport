@@ -29,8 +29,8 @@ class DatabaseApp:
     def object_storage(file_path):
         # Прямая передача ключей в конструктор
         storage = ObjectStorage.YandexStaticKeyStorage(
-            key_id='YCAJE8gyPb9rAuyGYYKicSuvS',
-            secret_key='YCMmulTnsXttMXesYJLDTGxOToQ1gVELqj58cgGh',
+            key_id='',
+            secret_key='',
             bucket_name='trucking-documents'
         )
 
