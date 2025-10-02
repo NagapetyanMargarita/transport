@@ -1,8 +1,14 @@
+import os
 import tkinter as tk
 from tkinter import ttk, messagebox
 from datetime import datetime, date
+from xml.etree.ElementTree import tostring
 from sqlScripts import rcScripts
 from tkcalendar import DateEntry  # Для календаря нужно установить: pip install tkcalendar
+from documents import documentCreator
+from documents import ObjectStorage
+
+
 
 
 class DatabaseApp:
@@ -19,6 +25,22 @@ class DatabaseApp:
 
         # Загрузка данных РЦ
         self.rcData()
+
+    def object_storage(file_path):
+        # Прямая передача ключей в конструктор
+        storage = ObjectStorage.YandexStaticKeyStorage(
+            key_id='YCAJE8gyPb9rAuyGYYKicSuvS',
+            secret_key='YCMmulTnsXttMXesYJLDTGxOToQ1gVELqj58cgGh',
+            bucket_name='trucking-documents'
+        )
+
+        # Тестируем подключение
+        if storage.test_connection():
+            # Просматриваем файлы
+            # storage.list_files()
+
+            # Загружаем документ
+            storage.upload_docx_file(file_path)
 
     def create_widgets(self):
         """Создание элементов интерфейса"""
@@ -51,7 +73,7 @@ class DatabaseApp:
         button_frame.grid(row=0, column=4, padx=10, pady=5)
 
         ttk.Button(button_frame, text="Обновить", command=self.load_data).pack(side=tk.LEFT, padx=2)
-        ttk.Button(button_frame, text="Очистить", command=self.clear_filters).pack(side=tk.LEFT, padx=2)
+        ttk.Button(button_frame, text="Только действующие", command=self.onActiveMl).pack(side=tk.LEFT, padx=2)
         # ttk.Button(button_frame, text="Показать все", command=self.show_all_data).pack(side=tk.LEFT, padx=2)
 
         # Главное поле для отображения данных (Treeview)
@@ -66,7 +88,7 @@ class DatabaseApp:
             data_frame,
             yscrollcommand=tree_scroll.set,
             selectmode="extended",  # Возможность выбора нескольких строк
-            columns=('ID', 'РЦ', 'Дата', 'id маршрута', 'ТС', 'Прицеп', 'Статус маршрута', 'ВЭ на маршруте')
+            columns=('ID маршрута', 'РЦ', 'Дата', 'Путевой лист', 'ТС', 'Прицеп', 'Статус маршрута', 'ВЭ на маршруте')
         )
         self.tree.pack(fill=tk.BOTH, expand=True)
 
@@ -74,20 +96,20 @@ class DatabaseApp:
 
         # Настройка колонок
         self.tree.column('#0', width=0, stretch=tk.NO)
-        self.tree.column('ID', width=50, anchor=tk.CENTER)
+        self.tree.column('ID маршрута', width=50, anchor=tk.CENTER)
         self.tree.column('РЦ', width=100, anchor=tk.CENTER)
         self.tree.column('Дата', width=100, anchor=tk.CENTER)
-        self.tree.column('id маршрута', width=100, anchor=tk.W)
+        self.tree.column('Путевой лист', width=100, anchor=tk.W)
         self.tree.column('ТС', width=80, anchor=tk.CENTER)
         self.tree.column('Прицеп', width=80, anchor=tk.E)
         self.tree.column('Статус маршрута', width=100, anchor=tk.E)
         self.tree.column('ВЭ на маршруте', width=100, anchor=tk.E)
 
         # Заголовки колонок
-        self.tree.heading('ID', text='ID')
+        self.tree.heading('ID маршрута', text='ID маршрута')
         self.tree.heading('РЦ', text='РЦ')
         self.tree.heading('Дата', text='Дата')
-        self.tree.heading('id маршрута', text='id маршрута')
+        self.tree.heading('Путевой лист', text='Путевой лист')
         self.tree.heading('ТС', text='ТС')
         self.tree.heading('Прицеп', text='Прицеп')
         self.tree.heading('Статус маршрута', text='Статус маршрута')
@@ -98,7 +120,7 @@ class DatabaseApp:
         action_frame = ttk.Frame(self.root)
         action_frame.pack(fill=tk.X, padx=10, pady=5)
 
-        ttk.Button(action_frame, text="Удалить выбранное", command=self.delete_selected).pack(side=tk.LEFT, padx=5)
+        ttk.Button(action_frame, text="Открыть маршрут", command=self.openRoute).pack(side=tk.LEFT, padx=5)
         ttk.Button(action_frame, text="Экспорт в файл", command=self.export_data).pack(side=tk.LEFT, padx=5)
         ttk.Button(action_frame, text="Информация о выбранном", command=self.show_selected_info).pack(side=tk.LEFT,
                                                                                                       padx=5)
@@ -175,36 +197,75 @@ class DatabaseApp:
     #     except Exception as e:
     #         messagebox.showerror("Ошибка", f"Ошибка загрузки данных: {str(e)}")
 
-    def clear_filters(self):
+    def onActiveMl(self):
         """Очистка фильтров"""
-        self.date_entry.set_date(datetime.now())
-        if self.rc_combobox['values']:
-            self.rc_combobox.set(self.rc_combobox['values'][0])
+        try:
+            # Очистка Treeview
+            for item in self.tree.get_children():
+                self.tree.delete(item)
+
+            # Получение значений фильтров
+
+            selected_rc = self.rc_var.get()
+
+            # Построение запроса
+            rows = rcScripts.returnMldataActive(selected_rc)
+
+            # Заполнение Treeview
+            for row in rows:
+                values = [value for value in row.values()]
+                values[-3:] = [' '.join(values[-3:])]
+                values[2] = datetime.fromtimestamp(values[2] / 1000000.0)
+                self.tree.insert('', tk.END, values=values)
+
+            self.status_var.set(f"Загружено {len(rows)} записей")
+
+        except Exception as e:
+            messagebox.showerror("Ошибка", f"Ошибка загрузки данных: {str(e)}")
 
     def on_rc_select(self, event):
         """Обработчик выбора РЦ"""
         selected_rc = self.rc_var.get()
         self.status_var.set(f"Выбран РЦ: {selected_rc}")
 
-    def delete_selected(self):
+    def openRoute(self):
         """Удаление выбранных записей"""
         selected_items = self.tree.selection()
         if not selected_items:
             messagebox.showwarning("Предупреждение", "Не выбрано ни одной записи для удаления")
             return
 
-        if messagebox.askyesno("Подтверждение", f"Вы уверены, что хотите удалить {len(selected_items)} записей?"):
-            try:
-                for item in selected_items:
-                    item_id = self.tree.item(item)['values'][0]
-                #     self.cursor.execute("DELETE FROM main_data WHERE id = ?", (item_id,))
-                #
-                # self.conn.commit()
-                # self.show_all_data()  # Обновляем отображение
-                messagebox.showinfo("Успех", "Записи успешно удалены")
 
-            except Exception as e:
-                messagebox.showerror("Ошибка", f"Ошибка удаления: {str(e)}")
+        try:
+            for item in selected_items:
+                item_id = self.tree.item(item)['values'][0]
+                if self.tree.item(item)['values'][6] == 'не открыт':
+                    if messagebox.askyesno("Подтверждение",
+                                       f"Вы уверены, что хотите открыть маршрут" + str(item_id) + "?"):
+                        print(item_id)
+                        print(rcScripts.openRouteWithRouteId(int(item_id)))
+                        self.onActiveMl()
+                        file_path = "documents/route_sheet.docx"
+                        documentCreator.generate_document(item_id, self.tree.item(item)['values'][3],
+                                                          self.tree.item(item)['values'][7], seal_path="documents/seal.jpg",
+                      output_file=file_path)
+                        documentCreator.object_storage(file_path)
+                        # Удаление файла
+                        if os.path.exists(file_path):
+                            os.remove(file_path)
+                            print(f"Файл удален: {file_path}")
+                        else:
+                            print(f"Файл не найден: {file_path}")
+                else:
+                    messagebox.showwarning("Предупреждение", "Данный маршрут уже открыт")
+            #     self.cursor.execute("DELETE FROM main_data WHERE id = ?", (item_id,))
+            #
+            # self.conn.commit()
+            # self.show_all_data()  # Обновляем отображение
+
+
+        except Exception as e:
+            messagebox.showerror("Ошибка", f"Ошибка удаления: {str(e)}")
 
     def export_data(self):
         """Экспорт данных в файл (упрощенная версия)"""

@@ -3,6 +3,10 @@ from docx.shared import Inches
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 from datetime import datetime
 
+from documents.ObjectStorage import YandexStaticKeyStorage
+import os
+
+
 def generate_document(Nomer1, Nomer2, Gos_TS, FIO, seal_path, output_file):
     """
     Генерирует маршрутный лист с титульником, датой слева и печатью справа внизу страницы.
