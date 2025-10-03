@@ -25,14 +25,14 @@ class DatabaseApp:
 
         # Загрузка данных РЦ
         self.rcData()
-    #
-    # def object_storage(file_path):
-    #     # Прямая передача ключей в конструктор
-    #     storage = ObjectStorage.YandexStaticKeyStorage(
-    #         key_id='',
-    #         secret_key='',
-    #         bucket_name='trucking-documents'
-    #     )
+
+    def object_storage(file_path):
+        # Прямая передача ключей в конструктор
+        storage = ObjectStorage.YandexStaticKeyStorage(
+            key_id='',
+            secret_key='',
+            bucket_name='trucking-documents'
+        )
 
         # Тестируем подключение
         if storage.test_connection():
