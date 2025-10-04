@@ -25,7 +25,6 @@ class DatabaseApp:
 
         # Загрузка данных РЦ
         self.rcData()
-
         # Загрузка данных Status
         self.StatusData()
 
@@ -80,10 +79,10 @@ class DatabaseApp:
 
         # Кнопки управления
         button_frame = ttk.Frame(filter_frame)
-        button_frame.grid(row=0, column=6, padx=10, pady=5, sticky=tk.W)
+        button_frame.grid(row=0, column=4, padx=10, pady=5)
 
         ttk.Button(button_frame, text="Обновить", command=self.load_data).pack(side=tk.LEFT, padx=2)
-
+        ttk.Button(button_frame, text="Только действующие", command=self.onActiveMl).pack(side=tk.LEFT, padx=2)
         # ttk.Button(button_frame, text="Показать все", command=self.show_all_data).pack(side=tk.LEFT, padx=2)
 
         # Главное поле для отображения данных (Treeview)
