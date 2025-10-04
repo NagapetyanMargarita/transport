@@ -31,8 +31,8 @@ class DatabaseApp:
     def object_storage(self, file_path):
         # Прямая передача ключей в конструктор
         storage = ObjectStorage.YandexStaticKeyStorage(
-            key_id='YCA...vS',
-            secret_key='YCM...Gh',
+            key_id='YCAJE8gyPb9rAuyGYYKicSuvS',
+            secret_key='YCMmulTnsXttMXesYJLDTGxOToQ1gVELqj58cgGh',
             bucket_name='trucking-documents'
         )
 
@@ -79,10 +79,10 @@ class DatabaseApp:
 
         # Кнопки управления
         button_frame = ttk.Frame(filter_frame)
-        button_frame.grid(row=0, column=4, padx=10, pady=5)
+        button_frame.grid(row=0, column=6, padx=10, pady=5, sticky=tk.W)
 
         ttk.Button(button_frame, text="Обновить", command=self.load_data).pack(side=tk.LEFT, padx=2)
-        ttk.Button(button_frame, text="Только действующие", command=self.onActiveMl).pack(side=tk.LEFT, padx=2)
+        #ttk.Button(button_frame, text="Только действующие", command=self.onActiveMl).pack(side=tk.LEFT, padx=2)
         # ttk.Button(button_frame, text="Показать все", command=self.show_all_data).pack(side=tk.LEFT, padx=2)
 
         # Главное поле для отображения данных (Treeview)
@@ -264,6 +264,7 @@ class DatabaseApp:
             messagebox.showerror("Ошибка", f"Ошибка удаления: {str(e)}")
 
     def export_data(self):
+        """Экспорт данных в файл (упрощенная версия)"""
         selected_items = self.tree.selection()
         if not selected_items:
             messagebox.showwarning("Предупреждение", "Не выбрано ни одной записи")
@@ -274,14 +275,15 @@ class DatabaseApp:
                 item_id = self.tree.item(item)['values'][0]
                 if self.tree.item(item)['values'][6] != 'не открыт':
                     if messagebox.askyesno("Подтверждение",
-                                       f"Вы уверены, что хотите скачать маршрутный лист в папку 'download_route_sheet' ?"):
-                        # Скачивание файла
+                                           f"Вы уверены, что хотите скачать маршрутный лист в папку 'download_route_sheet' ?"):
                         os.makedirs("../download_route_sheet", exist_ok=True)
                         ObjectStorage.YandexStaticKeyStorage.download_public_file(item_id)
                 else:
-                    messagebox.showwarning("Предупреждение", "Необходимо сначала открыть маршрут")
+                    messagebox.showwarning("Предупреждение", "Необходимо открыть маршрут")
         except Exception as e:
             messagebox.showerror("Ошибка", f"Ошибка: {str(e)}")
+
+
 
 def main():
     root = tk.Tk()

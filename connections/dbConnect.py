@@ -5,7 +5,7 @@ import sys
 # Укажите свои параметры подключения
 ENDPOINT = "grpcs://ydb.serverless.yandexcloud.net:2135"
 DATABASE = "/ru-central1/b1gb2ho0vh9cddbcqjt4/etnjkb3gtbtoti2j2su0"   # замените на ваши
-KEY_PATH = r"../authorized_key.json"  # либо IAM-токен, либо OAuth-токен
+KEY_PATH = r"C:/Users/Margo/Downloads/authorized_key.json"  # либо IAM-токен, либо OAuth-токен
 
 
 def connect():
