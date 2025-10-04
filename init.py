@@ -5,8 +5,8 @@ import os
 def object_storage(file_path):
     # Прямая передача ключей в конструктор
     storage = YandexStaticKeyStorage(
-        key_id='YCA...S',
-        secret_key='YCM...h',
+        key_id='YCAJE8gyPb9rAuyGYYKicSuvS',
+        secret_key='YCMmulTnsXttMXesYJLDTGxOToQ1gVELqj58cgGh',
         bucket_name='trucking-documents'
     )
 

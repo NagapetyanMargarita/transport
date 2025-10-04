@@ -25,14 +25,17 @@ class DatabaseApp:
 
         # Загрузка данных РЦ
         self.rcData()
-    #
-    # def object_storage(file_path):
-    #     # Прямая передача ключей в конструктор
-    #     storage = ObjectStorage.YandexStaticKeyStorage(
-    #         key_id='',
-    #         secret_key='',
-    #         bucket_name='trucking-documents'
-    #     )
+
+        # Загрузка данных Status
+        self.StatusData()
+
+    def object_storage(self, file_path):
+        # Прямая передача ключей в конструктор
+        storage = ObjectStorage.YandexStaticKeyStorage(
+            key_id='YCA...vS',
+            secret_key='YCM...Gh',
+            bucket_name='trucking-documents'
+        )
 
         # Тестируем подключение
         if storage.test_connection():
@@ -68,12 +71,19 @@ class DatabaseApp:
         self.rc_combobox.grid(row=0, column=3, padx=5, pady=5)
         self.rc_combobox.bind('<<ComboboxSelected>>', self.on_rc_select)
 
+        # Поле выбора Cтатуса
+        ttk.Label(filter_frame, text="Статус:").grid(row=0, column=4, padx=5, pady=5, sticky=tk.W)
+        self.stat_var = tk.StringVar()
+        self.status_combobox = ttk.Combobox(filter_frame, textvariable=self.stat_var, width=20, state="readonly")
+        self.status_combobox.grid(row=0, column=5, padx=5, pady=5)
+        self.status_combobox.bind('<<ComboboxSelected>>', self.on_status_select)
+
         # Кнопки управления
         button_frame = ttk.Frame(filter_frame)
-        button_frame.grid(row=0, column=4, padx=10, pady=5)
+        button_frame.grid(row=0, column=6, padx=10, pady=5, sticky=tk.W)
 
         ttk.Button(button_frame, text="Обновить", command=self.load_data).pack(side=tk.LEFT, padx=2)
-        ttk.Button(button_frame, text="Только действующие", command=self.onActiveMl).pack(side=tk.LEFT, padx=2)
+
         # ttk.Button(button_frame, text="Показать все", command=self.show_all_data).pack(side=tk.LEFT, padx=2)
 
         # Главное поле для отображения данных (Treeview)
@@ -121,9 +131,7 @@ class DatabaseApp:
         action_frame.pack(fill=tk.X, padx=10, pady=5)
 
         ttk.Button(action_frame, text="Открыть маршрут", command=self.openRoute).pack(side=tk.LEFT, padx=5)
-        ttk.Button(action_frame, text="Экспорт в файл", command=self.export_data).pack(side=tk.LEFT, padx=5)
-        ttk.Button(action_frame, text="Информация о выбранном", command=self.show_selected_info).pack(side=tk.LEFT,
-                                                                                                      padx=5)
+        ttk.Button(action_frame, text="Скачать", command=self.export_data).pack(side=tk.LEFT, padx=5)
 
         # Статус бар
         self.status_var = tk.StringVar()
@@ -143,6 +151,11 @@ class DatabaseApp:
                 rcList.append(row['name'])
             self.rc_combobox["values"] = rcList
 
+    def StatusData(self):
+        statuses = ["Все", "открыт", "завершен", "не открыт"]  # Можно и из БД доставать
+        self.status_combobox["values"] = statuses
+        self.status_combobox.current(0)  # "Все" по умолчанию
+
     def load_data(self):
         """Загрузка данных по выбранным фильтрам"""
 
@@ -155,9 +168,12 @@ class DatabaseApp:
             # Получение значений фильтров
 
             selected_rc = self.rc_var.get()
-
+            selected_status = self.stat_var.get()
+            # Если выбран статус "Все", передаем None
+            if selected_status == "Все":
+                selected_status = None
             # Построение запроса
-            rows = rcScripts.returnMldata(selected_rc)
+            rows = rcScripts.returnMldata(selected_rc, selected_status)
 
             # Заполнение Treeview
             for row in rows:
@@ -197,36 +213,15 @@ class DatabaseApp:
     #     except Exception as e:
     #         messagebox.showerror("Ошибка", f"Ошибка загрузки данных: {str(e)}")
 
-    def onActiveMl(self):
-        """Очистка фильтров"""
-        try:
-            # Очистка Treeview
-            for item in self.tree.get_children():
-                self.tree.delete(item)
-
-            # Получение значений фильтров
-
-            selected_rc = self.rc_var.get()
-
-            # Построение запроса
-            rows = rcScripts.returnMldataActive(selected_rc)
-
-            # Заполнение Treeview
-            for row in rows:
-                values = [value for value in row.values()]
-                values[-3:] = [' '.join(values[-3:])]
-                values[2] = datetime.fromtimestamp(values[2] / 1000000.0)
-                self.tree.insert('', tk.END, values=values)
-
-            self.status_var.set(f"Загружено {len(rows)} записей")
-
-        except Exception as e:
-            messagebox.showerror("Ошибка", f"Ошибка загрузки данных: {str(e)}")
-
     def on_rc_select(self, event):
         """Обработчик выбора РЦ"""
         selected_rc = self.rc_var.get()
         self.status_var.set(f"Выбран РЦ: {selected_rc}")
+
+    def on_status_select(self, event):
+        """Обработчик выбора Status"""
+        selected_status = self.stat_var.get()
+        self.status_var.set(f"Выбран статус: {selected_status}")
 
     def openRoute(self):
         """Удаление выбранных записей"""
@@ -241,21 +236,23 @@ class DatabaseApp:
                 item_id = self.tree.item(item)['values'][0]
                 if self.tree.item(item)['values'][6] == 'не открыт':
                     if messagebox.askyesno("Подтверждение",
-                                       f"Вы уверены, что хотите открыть маршрут" + str(item_id) + "?"):
+                                       f"Вы уверены, что хотите открыть маршрут " + str(item_id) + "?"):
                         print(item_id)
-                        print(rcScripts.openRouteWithRouteId(int(item_id)))
-                        self.onActiveMl()
-                        file_path = "documents/route_sheet.docx"
-                        documentCreator.generate_document(item_id, self.tree.item(item)['values'][3],
-                                                          self.tree.item(item)['values'][7], seal_path="documents/seal.jpg",
+                        #print(rcScripts.openRouteWithRouteId(int(item_id)))
+                        #self.onActiveMl()
+                        file_path = f"../documents/{item_id}_route_sheet.docx"
+                        documentCreator.generate_document(item_id, self.tree.item(item)['values'][2],
+                                                          self.tree.item(item)['values'][3],self.tree.item(item)['values'][7], seal_path="../documents/seal.jpg",
                       output_file=file_path)
-                        documentCreator.object_storage(file_path)
+                        self.object_storage(file_path)
                         # Удаление файла
                         if os.path.exists(file_path):
                             os.remove(file_path)
                             print(f"Файл удален: {file_path}")
                         else:
                             print(f"Файл не найден: {file_path}")
+                        print(rcScripts.openRouteWithRouteId(int(item_id)))
+                        self.load_data()
                 else:
                     messagebox.showwarning("Предупреждение", "Данный маршрут уже открыт")
             #     self.cursor.execute("DELETE FROM main_data WHERE id = ?", (item_id,))
@@ -268,46 +265,24 @@ class DatabaseApp:
             messagebox.showerror("Ошибка", f"Ошибка удаления: {str(e)}")
 
     def export_data(self):
-        """Экспорт данных в файл (упрощенная версия)"""
-        try:
-            selected_items = self.tree.selection()
-            if not selected_items:
-                messagebox.showwarning("Предупреждение", "Не выбрано ни одной записи для экспорта")
-                return
-
-            with open("exported_data.txt", "w", encoding="utf-8") as f:
-                f.write("ID\tРЦ\tДата\tНаименование\tКоличество\tЦена\n")
-                for item in selected_items:
-                    values = self.tree.item(item)['values']
-                    f.write("\t".join(map(str, values)) + "\n")
-
-            messagebox.showinfo("Успех", f"Данные экспортированы в файл: exported_data.txt")
-
-        except Exception as e:
-            messagebox.showerror("Ошибка", f"Ошибка экспорта: {str(e)}")
-
-    def show_selected_info(self):
-        """Показать информацию о выбранных записях"""
         selected_items = self.tree.selection()
         if not selected_items:
             messagebox.showwarning("Предупреждение", "Не выбрано ни одной записи")
             return
 
-        info = f"Выбрано записей: {len(selected_items)}\n\n"
-        total_quantity = 0
-        total_value = 0
-
-        for item in selected_items:
-            values = self.tree.item(item)['values']
-            info += f"ID: {values[0]}, Товар: {values[3]}, Кол-во: {values[4]}, Цена: {values[5]}\n"
-            total_quantity += values[4]
-            total_value += values[4] * values[5]
-
-        info += f"\nИтого количество: {total_quantity}"
-        info += f"\nОбщая стоимость: {total_value:.2f}"
-
-        messagebox.showinfo("Информация о выбранных записях", info)
-
+        try:
+            for item in selected_items:
+                item_id = self.tree.item(item)['values'][0]
+                if self.tree.item(item)['values'][6] != 'не открыт':
+                    if messagebox.askyesno("Подтверждение",
+                                       f"Вы уверены, что хотите скачать маршрутный лист в папку 'download_route_sheet' ?"):
+                        # Скачивание файла
+                        os.makedirs("../download_route_sheet", exist_ok=True)
+                        ObjectStorage.YandexStaticKeyStorage.download_public_file(item_id)
+                else:
+                    messagebox.showwarning("Предупреждение", "Необходимо сначала открыть маршрут")
+        except Exception as e:
+            messagebox.showerror("Ошибка", f"Ошибка: {str(e)}")
 
 def main():
     root = tk.Tk()

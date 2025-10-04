@@ -10,9 +10,11 @@ def loadRcData(session):
     )
 
 
-def loadRcMlListdata(session, rc_name):
-    query = """
-        DECLARE $rc_name AS Text;
+def loadRcMlListdata(session, rc_name, status=None):
+    if status:
+        base_query = """
+            DECLARE $rc_name AS Text;
+            DECLARE $status AS Text;
             SELECT 
                 iti.id ID, 
                 rc.name RC, 
@@ -23,7 +25,29 @@ def loadRcMlListdata(session, rc_name):
                 iti.status status,
                 d.first_name First_name,
                 d.middle_name Middle_name, 
-                d.last_name Last_name, 
+                d.last_name Last_name
+            FROM rc 
+            JOIN itinerary AS iti ON rc.id = iti.rc_id
+            JOIN waybill AS w ON iti.waybill_id = w.id
+            JOIN cars AS c ON w.car_id = c.id
+            JOIN trailers AS t ON c.trailer_id = t.id
+            JOIN drivers AS d ON w.driver_id = d.id
+            WHERE rc.name = $rc_name AND iti.status = $status
+        """
+    else:
+        base_query = """
+            DECLARE $rc_name AS Text;
+            SELECT 
+                iti.id ID, 
+                rc.name RC, 
+                iti.open_date OpenDate, 
+                w.waybill_number w_number, 
+                c.ident_code Cars_Ident_Code, 
+                t.ident_code Trailers_Ident_Code,
+                iti.status status,
+                d.first_name First_name,
+                d.middle_name Middle_name, 
+                d.last_name Last_name
             FROM rc 
             JOIN itinerary AS iti ON rc.id = iti.rc_id
             JOIN waybill AS w ON iti.waybill_id = w.id
@@ -32,43 +56,16 @@ def loadRcMlListdata(session, rc_name):
             JOIN drivers AS d ON w.driver_id = d.id
             WHERE rc.name = $rc_name
         """
-    prepared_query = session.prepare(query)
+
+    prepared_query = session.prepare(base_query)
+
+    params = {'$rc_name': rc_name}
+    if status:
+        params['$status'] = status
 
     return session.transaction().execute(
         prepared_query,
-        parameters={'$rc_name': rc_name},
-        commit_tx=True
-    )
-
-
-def loadRcMlListdataActive(session, rc_name):
-    query = """
-        DECLARE $rc_name AS Text;
-            SELECT 
-                iti.id ID, 
-                rc.name RC, 
-                iti.open_date OpenDate, 
-                iti.ml_id ML_ID, 
-                c.ident_code Cars_Ident_Code, 
-                t.ident_code Trailers_Ident_Code,
-                iti.status status,
-                d.first_name First_name,
-                d.middle_name Middle_name, 
-                d.last_name Last_name, 
-            FROM rc 
-            JOIN itinerary AS iti ON rc.id = iti.rc_id
-            JOIN waybill AS w ON iti.waybill_id = w.id
-            JOIN cars AS c ON w.car_id = c.id
-            JOIN trailers AS t ON c.trailer_id = t.id
-            JOIN drivers AS d ON w.driver_id = d.id
-            WHERE rc.name = $rc_name and (status = 'открыт' or status = 'завершен')
-            order by iti.id ASC, status desc;
-        """
-    prepared_query = session.prepare(query)
-
-    return session.transaction().execute(
-        prepared_query,
-        parameters={'$rc_name': rc_name},
+        parameters=params,
         commit_tx=True
     )
 
@@ -101,26 +98,12 @@ def returnRC():
         print("Ошибка при выполнении запроса:", str(e))
 
 
-def returnMldata(rc_name):
+def returnMldata(rc_name, status=None):
     try:
-        result_sets = pool.retry_operation_sync(lambda session: loadRcMlListdata(session, rc_name))
-        rows = result_sets[0].rows
-        if not rows:
-            print("Таблица users пуста или не найдена")
-        else:
-            return rows
-    except Exception as e:
-        print("Ошибка при выполнении запроса:", str(e))
-
-
-def returnMldataActive(rc_name):
-    try:
-        result_sets = pool.retry_operation_sync(lambda session: loadRcMlListdataActive(session, rc_name))
-        rows = result_sets[0].rows
-        if not rows:
-            print("Таблица users пуста или не найдена")
-        else:
-            return rows
+        result_sets = pool.retry_operation_sync(
+            lambda session: loadRcMlListdata(session, rc_name, status)
+        )
+        return result_sets[0].rows
     except Exception as e:
         print("Ошибка при выполнении запроса:", str(e))
 

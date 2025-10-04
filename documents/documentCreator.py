@@ -11,6 +11,7 @@ def generate_document(Nomer1, Nomer2, Gos_TS, FIO, seal_path, output_file):
     """
     Генерирует маршрутный лист с титульником, датой слева и печатью справа внизу страницы.
     """
+    print("In Doc")
     doc = Document()
 
     # Титульная страница

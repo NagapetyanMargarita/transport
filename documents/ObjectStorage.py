@@ -56,8 +56,7 @@ class YandexStaticKeyStorage:
             # Генерируем ключ если не указан
             if not object_key:
                 filename = os.path.basename(file_path)
-                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-                object_key = f"documents/{timestamp}_{filename}"
+                object_key = f"documents/{filename}"
 
             # Базовые метаданные
             file_metadata = {
@@ -125,7 +124,7 @@ class YandexStaticKeyStorage:
             return []
 
     @staticmethod
-    def download_public_file(file_id, save_path="download_route_sheet"):
+    def download_public_file(file_id, save_path="../download_route_sheet"):
         try:
             file_url=f"https://storage.yandexcloud.net/trucking-documents/documents/{file_id}_route_sheet.docx"
             response = requests.get(file_url, stream=True)
